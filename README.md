@@ -5,11 +5,11 @@
 **A new wallpaper every day. Nothing left running.**
 
 Beautiful daily wallpapers for Windows, from the sources and categories you choose,<br>
-in a single 534 KB app that uses no memory between changes.
+in a single 515 KB app that uses no memory between changes.
 
 ![Windows 11](https://img.shields.io/badge/Windows-11-0078D4)
 ![Built with Rust](https://img.shields.io/badge/built_with-Rust-B7410E)
-![Size](https://img.shields.io/badge/size-534_KB-2E8B57)
+![Size](https://img.shields.io/badge/size-515_KB-2E8B57)
 ![Background memory](https://img.shields.io/badge/background_memory-0_MB-2E8B57)
 
 <img src="assets/readme/hero.png" alt="The backreel settings window over a mountain lake wallpaper" width="860">
@@ -76,7 +76,7 @@ Instead of staying open all day, backreel lets Task Scheduler start it. It sets 
 | During a change | About 10 MB, for 1 to 2 seconds a day |
 | With the tray icon on | **1.8 MB** of memory, no CPU while idle |
 | Settings window | About 16 MB, only while open |
-| App size | **534 KB**, with no runtime to install |
+| App size | **515 KB**, with no runtime to install |
 | Disk cache | Your last 8 wallpapers, around 7 MB |
 
 ## Sources

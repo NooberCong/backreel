@@ -1,25 +1,33 @@
 """Regenerates the app icon. Usage: python tools/make_icon.py assets/backreel.ico
 
-The mark is an amber film reel rising like a sun behind blue ridges. Each size
-is drawn on its own rather than scaled down, because five reel holes and two
-ridges turn to mush at tray size.
+The mark is a snow-capped peak against a dusk sky. Each size is drawn on its own
+rather than scaled down, because facets and back ridges turn to mush at tray
+size.
 """
-import math
 import sys
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageChops, ImageDraw
 
 SIZES = (16, 20, 24, 28, 32, 40, 48, 64, 256)
 SUPERSAMPLE = 8
 NAVY = (9, 24, 58)
 DEEP = (15, 56, 108)
+SLATE = (24, 74, 132)
 SKY = (32, 128, 186)
 HORIZON = (150, 226, 240)
-AMBER = (255, 184, 64)
-BACK_RIDGE = ((0, 0.74), (0.17, 0.66), (0.36, 0.76), (0.72, 0.6), (1, 0.72), (1, 1), (0, 1))
-FRONT_RIDGE = ((0, 0.88), (0.26, 0.76), (0.5, 0.87), (0.78, 0.77), (1, 0.87), (1, 1), (0, 1))
-SMALL_RIDGE = ((0, 0.82), (0.3, 0.7), (0.56, 0.84), (0.8, 0.68), (1, 0.8), (1, 1), (0, 1))
+SNOW = (255, 255, 255)
+SNOW_SHADE = (190, 218, 240)
+
+PEAK = ((0.5, 0.15), (0.65, 0.38), (0.74, 0.46), (1.1, 1), (-0.1, 1), (0.25, 0.47), (0.35, 0.39))
+SNOW_LINE = ((0, 0), (1, 0), (1, 0.47), (0.71, 0.47), (0.61, 0.41), (0.54, 0.52), (0.45, 0.42), (0.37, 0.5), (0.3, 0.44), (0, 0.47))
+SHADED_FACE = ((0.5, 0.15), (0.47, 0.32), (0.55, 0.5), (0.49, 0.68), (0.6, 0.86), (0.56, 1), (1.1, 1), (1.1, 0.15))
+BACK_LEFT = ((-0.1, 0.8), (0.17, 0.5), (0.5, 1), (-0.1, 1))
+BACK_RIGHT = ((0.5, 1), (0.84, 0.54), (1.1, 0.8), (1.1, 1))
+FOOTHILLS = ((0, 0.9), (0.24, 0.81), (0.5, 0.9), (0.78, 0.82), (1, 0.89), (1, 1), (0, 1))
+
+SMALL_PEAK = ((0.5, 0.12), (1.12, 1), (-0.12, 1))
+SMALL_SNOW_LINE = ((0, 0), (1, 0), (1, 0.5), (0.68, 0.5), (0.58, 0.42), (0.5, 0.54), (0.42, 0.42), (0.32, 0.5), (0, 0.5))
 
 
 def sky(n, stops):
@@ -28,26 +36,10 @@ def sky(n, stops):
     return Image.fromarray(np.stack(column, axis=-1)[:, None, :].astype("uint8")).resize((n, n))
 
 
-def disc(draw, n, x, y, radius, fill):
-    draw.ellipse(((x - radius) * n, (y - radius) * n, (x + radius) * n, (y + radius) * n), fill=fill)
-
-
-def reel(n, y, radius, holes, hole, hub):
-    """The reel as a mask; `hole` and `hub` are fractions of its radius."""
+def shape(n, points):
     mask = Image.new("L", (n, n), 0)
-    draw = ImageDraw.Draw(mask)
-    disc(draw, n, 0.5, y, radius, 255)
-    for index in range(holes):
-        angle = math.radians(-90 + index * 360 / holes)
-        x, hole_y = 0.5 + radius * 0.56 * math.cos(angle), y + radius * 0.56 * math.sin(angle)
-        disc(draw, n, x, hole_y, radius * hole, 0)
-    if hub:
-        disc(draw, n, 0.5, y, radius * hub, 0)
+    ImageDraw.Draw(mask).polygon([(x * n, y * n) for x, y in points], fill=255)
     return mask
-
-
-def ridge(art, n, points, fill):
-    ImageDraw.Draw(art).polygon([(x * n, y * n) for x, y in points], fill=fill)
 
 
 def render(size):
@@ -55,25 +47,22 @@ def render(size):
     full = size >= 40
 
     if full:
-        art = sky(n, ((0, NAVY), (0.6, SKY), (0.78, HORIZON)))
-        mark = reel(n, 0.43, 0.29, holes=5, hole=0.235, hub=0.1)
-        # A soft glow, which would only blur the smaller sizes. The clean sky goes
-        # back over the reel's area so the holes don't turn muddy.
-        clean = art.copy()
-        solid = reel(n, 0.43, 0.29, holes=0, hole=0, hub=0)
-        glow = solid.filter(ImageFilter.GaussianBlur(n * 0.05)).point(lambda value: value * 0.4)
-        art.paste(AMBER, (0, 0), glow)
-        art.paste(clean, (0, 0), solid)
+        art = sky(n, ((0, NAVY), (0.5, SKY), (0.8, HORIZON)))
+        art.paste(SLATE, (0, 0), shape(n, BACK_LEFT))
+        art.paste(SLATE, (0, 0), shape(n, BACK_RIGHT))
+        peak = shape(n, PEAK)
+        snow = ImageChops.multiply(peak, shape(n, SNOW_LINE))
+        shaded = shape(n, SHADED_FACE)
+        art.paste(DEEP, (0, 0), peak)
+        art.paste(NAVY, (0, 0), ImageChops.multiply(peak, shaded))
+        art.paste(SNOW, (0, 0), snow)
+        art.paste(SNOW_SHADE, (0, 0), ImageChops.multiply(snow, shaded))
+        art.paste(NAVY, (0, 0), shape(n, FOOTHILLS))
     else:
-        art = sky(n, ((0, NAVY), (0.75, SKY)))
-        mark = reel(n, 0.42, 0.36, holes=3, hole=0.29, hub=0)
-    art.paste(AMBER, (0, 0), mark)
-
-    if full:
-        ridge(art, n, BACK_RIDGE, DEEP)
-        ridge(art, n, FRONT_RIDGE, NAVY)
-    else:
-        ridge(art, n, SMALL_RIDGE, NAVY)
+        art = sky(n, ((0, DEEP), (0.8, SKY)))
+        peak = shape(n, SMALL_PEAK)
+        art.paste(NAVY, (0, 0), peak)
+        art.paste(SNOW, (0, 0), ImageChops.multiply(peak, shape(n, SMALL_SNOW_LINE)))
 
     tile = Image.new("L", (n, n), 0)
     edge = n * (0.03 if full else 0)
